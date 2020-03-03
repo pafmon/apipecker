@@ -1,0 +1,27 @@
+{
+  "name": "apipecker",
+  "version": "1.0.0",
+  "description": "A simple API Performance tester",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pafmon/apipecker.git"
+  },
+  "keywords": [
+    "test",
+    "api",
+    "performance"
+  ],
+  "bin":{
+    "apipecker": "./index.js"
+  },
+  "author": "pafmon",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pafmon/apipecker/issues"
+  },
+  "homepage": "https://github.com/pafmon/apipecker#readme"
+}
