@@ -25,8 +25,8 @@ const {
 
 
 if (process.argv.length <6) {
-    console.log("Use apipecker <concurrentUsers> <iterations> <delay in ms> <url> [true|false]\nLast parameter enables the VERBOSE mode if true (default=false).");
-    console.log("Example: apipecker 2 3 500 http://knapsack-api.herokuapp.com/api/v1/stress/10000/10 true");
+    console.log("Use apipecker <concurrentUsers> <iterations> <delay in ms> <url> [-v]\nLast parameter enables the VERBOSE mode.");
+    console.log("Example: apipecker 2 3 500 http://knapsack-api.herokuapp.com/api/v1/stress/10000/10 -v");
     process.exit();
 }
 
@@ -36,7 +36,7 @@ var concurrentUsers = process.argv[2] || 2;
 var iterations = process.argv[3] || 3;
 var delay = process.argv[4] || 500;
 var url = process.argv[5] || 'http://knapsack-api.herokuapp.com/api/v1/stress/10000/10';
-var verbose= process.argv[6] || false;
+var verbose= (process.argv[6] == "-v");
 
 
 var protocol = urlParser.parse(url, true).protocol.slice(0,-1);

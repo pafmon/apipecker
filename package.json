@@ -1,6 +1,6 @@
 {
   "name": "apipecker",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A simple API Performance tester",
   "main": "index.js",
   "scripts": {
