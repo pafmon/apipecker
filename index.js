@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 
 const http = require('http');
+const https = require('https');
+
+const urlParser = require('url');
+
+
 const {
     promiseSerial,
     promiseParallel
@@ -27,12 +32,29 @@ if (process.argv.length <6) {
 
 
 
-
 var concurrentUsers = process.argv[2] || 2;
 var iterations = process.argv[3] || 3;
 var delay = process.argv[4] || 500;
 var url = process.argv[5] || 'http://knapsack-api.herokuapp.com/api/v1/stress/10000/10';
 var verbose= process.argv[6] || false;
+
+
+var protocol = urlParser.parse(url, true).protocol.slice(0,-1);
+
+var requester;
+
+switch(protocol) {
+    case "http":
+      requester = http;
+      break;
+    case "https":
+      requester = https;
+      break;
+    default:
+      requester = http;
+}
+
+
 
 console.log("Stress configuration:");
 console.log("  - Concurrent users: %d", concurrentUsers);
@@ -97,7 +119,7 @@ function createRequestPromise(id, url) {
 
         var begin = getBegin();
 
-        http.get(url, (resp) => {
+        requester.get(url, (resp) => {
 
             let data = '';
 
