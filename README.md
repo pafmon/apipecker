@@ -3,7 +3,7 @@
 
 Usage: `apipecker <concurrentUsers> <iterations> <delay in ms> <url> [-v]`
 
-Last parameter enables the verbose mode to quer
+Last parameter enables the verbose mode to show metrics for each request.
 
 ## Install:
 ```terminal
