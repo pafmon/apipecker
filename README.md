@@ -1,5 +1,5 @@
 # APIPecker
-*A simple API Performance tester*
+*A simple API Performance tester* inspired by [*Woody Woodpecker*](https://en.wikipedia.org/wiki/Woody_Woodpecker)
 
 Usage: `apipecker <concurrentUsers> <iterations> <delay in ms> <url> [-v]`
 
