@@ -55,29 +55,34 @@ Stressing:
  - iteration1 started.
   - user1: Request to <http://knapsack-api.herokuapp.com/api/v1/stress/10000/10>...
   - user2: Request to <http://knapsack-api.herokuapp.com/api/v1/stress/10000/10>...
-    -> user1: Response recieved in 438.757ms
+    -> user1: Status Code 200
+    -> user1: Response recieved in 237.627ms
  - iteration2 started.
   - user1: Request to <http://knapsack-api.herokuapp.com/api/v1/stress/10000/10>...
   - user2: Request to <http://knapsack-api.herokuapp.com/api/v1/stress/10000/10>...
-    -> user2: Response recieved in 786.775ms
+    -> user2: Status Code 200
+    -> user2: Response recieved in 833.701ms
   -> iteration1 completed (1/3 of 3)
-    -> user2: Response recieved in 379.304ms
-    -> user1: Response recieved in 494.648ms
+    -> user1: Status Code 200
+    -> user1: Response recieved in 395.205ms
+    -> user2: Status Code 200
+    -> user2: Response recieved in 445.836ms
   -> iteration2 completed (2/3 of 3)
  - iteration3 started.
   - user1: Request to <http://knapsack-api.herokuapp.com/api/v1/stress/10000/10>...
   - user2: Request to <http://knapsack-api.herokuapp.com/api/v1/stress/10000/10>...
-    -> user2: Response recieved in 488.973ms
-    -> user1: Response recieved in 610.516ms
+    -> user1: Status Code 200
+    -> user1: Response recieved in 213.436ms
+    -> user2: Status Code 200
+    -> user2: Response recieved in 236.131ms
   -> iteration3 completed (3/3 of 3)
 
 Result:
 {
   "count": 6,
-  "min": 379.304,
-  "max": 786.775,
-  "mean": 533.162,
-  "std": 145.824
+  "min": 213.436,
+  "max": 833.701,
+  "mean": 393.656,
+  "std": 235.798
 }
-
 ```
