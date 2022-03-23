@@ -121,10 +121,11 @@ function createRequestPromise(id, url) {
 
         requester.get(url, (resp) => {
 
+            if (verbose) console.log(`    -> ${id}: Status Code ${resp.statusCode}`);
+
             let data = '';
 
             stats["initialResponseTime"] = getDuration(begin);
-
 
             // A chunk of data has been recieved.
             resp.on('data', (chunk) => {
@@ -134,7 +135,7 @@ function createRequestPromise(id, url) {
             // The whole response has been received. Print out the result.
             resp.on('end', () => {
                 stats["completeResponseTime"] = getDuration(begin);
-                if (verbose) console.log("    -> "+id+": Response recieved in "+stats["completeResponseTime"]+"ms");
+                if (verbose) console.log(`    -> ${id}: Response recieved in ${stats["completeResponseTime"]}ms`);
                 resolve(stats)
             });
 
