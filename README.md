@@ -45,6 +45,7 @@ Verbose mode example:
 npx apipecker 2 3 500 http://knapsack-api.herokuapp.com/api/v1/stress/10000/10 -v
 ```
 Output: 
+
 ```terminal
 Stress configuration:
   - Concurrent users: 2
@@ -90,7 +91,7 @@ Result:
 ## Module usage 
 It can be used as a module with different customization hooks.
 
-```
+```js
 const { run } = require("apipecker");
 
 function myUrlBuilder(userId){
@@ -151,6 +152,16 @@ and have more control over the execution flow and handle the results.
  - `responseHandler`: function to handle the response data
  - `resultsHandler`: function to handle the results stats
  
+### Response harvesting
+By default, apipecker will not harvest the response data, but you can enable it by setting the `harvestResponse` flag to `true`, e.g.:
+```js
+run({
+    concurrentUsers : 2,
+    iterations : 3,
+    delay : 500,
+    harvestResponse : true
+});
+```
 
 ## Tests
 

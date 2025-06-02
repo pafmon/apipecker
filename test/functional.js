@@ -2,7 +2,10 @@ const { run } = require("../index.js");
 
 let EXPECTED_MEAN = 150;
 let EPSILON = 10;
-
+const _RESET = '\x1b[0m';
+const _CYAN = '\x1b[36m';
+const _GREEN = '\x1b[32m';
+const _RED = '\x1b[31m';
 
 function myUrlBuilder(){
     var url = "http://localhost:3000/api/v1/stress/"+EXPECTED_MEAN;
@@ -35,10 +38,10 @@ function myResultsHandler(results){
     let mean = results.summary.mean;
         
     if(mean > EXPECTED_MEAN + EPSILON || mean < EXPECTED_MEAN - EPSILON){
-        console.log("ERROR: Expected mean of "+EXPECTED_MEAN+"ms, but got "+mean+"ms");
+        console.log(`${_RED}ERROR${_RESET} --> Expected mean of ${_CYAN}${EXPECTED_MEAN}ms${_RESET}, but got ${_CYAN}${mean}ms${_RESET}`);
         process.exit(1);
     }else{
-        console.log("SUCCESS: Expected mean ="+EXPECTED_MEAN+"ms, real mean = "+mean+"ms");
+        console.log(`${_GREEN}SUCCESS${_RESET} --> Expected mean: ${_CYAN}${EXPECTED_MEAN}ms${_RESET}, real mean: ${_CYAN}${mean}ms${_RESET}`);
         process.exit(0);
     }
 }

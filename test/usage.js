@@ -46,6 +46,7 @@ run({
     delay : 500,
     verbose : true,
     consoleLogging : true, //Comment this line to avoid logs
+    harvestResponse : true, //Comment this line to avoid harvesting response data
     urlBuilder: myUrlBuilder,
     requestBuilder : myRequestBuilder,
     responseHandler : myResponseHandler,

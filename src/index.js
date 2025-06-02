@@ -45,6 +45,7 @@ function run(config){
     const verbose = config.verbose;
     const method = config.method;
     consoleLogging = config.consoleLogging;
+    const harvestResponse = config.harvestResponse || false;
 
     const urlBuilder = config.urlBuilder;
     const requestBuilder = config.requestBuilder;
@@ -192,6 +193,9 @@ function run(config){
                             responseData : parsedData 
                         });
                     }
+
+                    if(harvestResponse) 
+                        stats["responseData"] = parsedData;
                     
                     resolve(stats)
                 });
