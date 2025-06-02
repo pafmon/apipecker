@@ -89,10 +89,11 @@ Result:
 ```
 
 ## Module usage 
-It can be used as a module with different customization hooks.
+It can be used as a module with different [customization hooks](#Customization-hooks).
 
 ```js
 const { run } = require("apipecker");
+// import { run } from "apipecker";  // in ES6 modules
 
 function myUrlBuilder(userId){
     var url = "https://api-echo.herokuapp.com/echo/myapi/request/test-"+userId+"withpartams=true";
@@ -136,6 +137,8 @@ run({
     iterations : 3,
     delay : 500,
     verbose : true,
+    consoleLogging : true, //Comment this line to avoid logs
+    harvestResponse : true, //Comment this line to avoid harvesting response data
     urlBuilder: myUrlBuilder,
     requestBuilder : myRequestBuilder,
     responseHandler : myResponseHandler,
@@ -143,8 +146,8 @@ run({
 });
 ```
 
-### Custom hooks
-This hooks are optional and can be used to customize the execution of apipecker in your project,
+### Customization hooks
+The hooks are optional and can be used to customize the execution of apipecker in your project,
 and have more control over the execution flow and handle the results.
 
  - `urlBuilder`: function to build the URL to be requested

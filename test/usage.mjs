@@ -1,5 +1,4 @@
-const { response } = require("express");
-const { run } = require("../index.js");
+import { run } from "../index.js";
 
 function myUrlBuilder(userId){
     var url = "https://api-echo.herokuapp.com/echo/myapi/request/test-"+userId+"withpartams=true";
