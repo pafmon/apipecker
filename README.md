@@ -120,10 +120,15 @@ function myRequestBuilder(userId){
     return requestConfig;
 }
 
+function myResponseHandler(responseInfo){
+    console.log(JSON.stringify(responseInfo,null,2));
+}
+
 function myResultsHandler(results){
     console.log(JSON.stringify(results.lotStats,null,2));
     console.log(JSON.stringify(results.summary,null,2));
 }
+
 
 run({
     concurrentUsers : 2,
@@ -132,6 +137,25 @@ run({
     verbose : true,
     urlBuilder: myUrlBuilder,
     requestBuilder : myRequestBuilder,
+    responseHandler : myResponseHandler,
     resultsHandler : myResultsHandler
 });
 ```
+
+### Custom hooks
+This hooks are optional and can be used to customize the execution of apipecker in your project,
+and have more control over the execution flow and handle the results.
+
+ - `urlBuilder`: function to build the URL to be requested
+ - `requestBuilder`: function to build the request options
+ - `responseHandler`: function to handle the response data
+ - `resultsHandler`: function to handle the results stats
+ 
+
+## Tests
+
+To run the tests (development mode), execute the following command:
+```terminal
+npm test
+``` 
+

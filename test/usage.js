@@ -1,3 +1,4 @@
+const { response } = require("express");
 const { run } = require("../index.js");
 
 function myUrlBuilder(userId){
@@ -27,12 +28,16 @@ function myRequestBuilder(userId){
     return requestConfig;
 }
 
+function myResponseHandler(responseInfo){
+    console.log(JSON.stringify(responseInfo,null,2));
+}
+
 function myResultsHandler(results){
-    // To show the detailed data, uncomment the following:
-    // console.log(JSON.stringify(results.lotStats,null,2));
+    // To show the detailed data
+    console.log(JSON.stringify(results.lotStats,null,2));
     
-    // To show a global summary, uncomment the following:
-    // console.log(JSON.stringify(results.summary,null,2));
+    // To show a global summary
+    console.log(JSON.stringify(results.summary,null,2));
 }
 
 run({
@@ -43,6 +48,7 @@ run({
     consoleLogging : true, //Comment this line to avoid logs
     urlBuilder: myUrlBuilder,
     requestBuilder : myRequestBuilder,
+    responseHandler : myResponseHandler,
     resultsHandler : myResultsHandler
 });
 

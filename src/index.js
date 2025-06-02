@@ -18,6 +18,14 @@ const {
     round
 } = require('./utils/math');
 
+
+
+const _RESET = '\x1b[0m';
+const _GREEN = '\x1b[32m';
+const _CYAN = '\x1b[36m';
+const _YELLOW = '\x1b[33m';
+const _RED = '\x1b[31m';
+
 var logs = [];
 var consoleLogging = false;
 
@@ -40,7 +48,9 @@ function run(config){
 
     const urlBuilder = config.urlBuilder;
     const requestBuilder = config.requestBuilder;
+    const responseHandler = config.responseHandler;
     const resultsHandler = config.resultsHandler;
+    
      
     try{
         
@@ -50,7 +60,7 @@ function run(config){
         var protocol = urlParser.parse(url, true).protocol.slice(0,-1);
 
     }catch(err){
-        throw new Error(`Invalid URL <${url}> : ${err}`);
+        throw new Error(`${_RED}Invalid URL <${url}> : ${err}${_RESET}`);
         return;
     }
 
@@ -69,11 +79,11 @@ function run(config){
     
     
     log(`Stress configuration:`);
-    log(`  - Concurrent users: ${concurrentUsers}`);
-    log(`  - Iterations: ${iterations}`);
-    log(`  - Delay: ${delay}`);
-    log(`  - URL: <${url}>`);
-    log(`  - Log mode: ${(verbose)?"VERBOSE":"normal"}`);
+    log(`  - Concurrent users: ${_CYAN}${concurrentUsers}${_RESET}`);
+    log(`  - Iterations: ${_CYAN}${iterations}${_RESET}`);
+    log(`  - Delay: ${_CYAN}${delay}${_RESET}`);
+    log(`  - URL: <${_CYAN}${url}${_RESET}>`);
+    log(`  - Log mode: ${(verbose)?_CYAN+"VERBOSE"+_RESET:_CYAN+"normal"+_RESET}`);
     
     
     log("Starting execution...");
@@ -147,11 +157,12 @@ function run(config){
             if (!options.method)
                 options.method = "GET";
 
-            if (verbose) log(`  - ${id}: ${options.method} Request to <${url}>...`);
+            if (verbose) log(`  - ${_CYAN}${id},it${initializedIterations}${_RESET}: ${_CYAN}${options.method}${_RESET} Request to <${_CYAN}${url}${_RESET}>...`);
+
 
             const req = requester.request(url,options, (resp) => {
     
-                if (verbose) log(`    -> ${id}: Status Code ${resp.statusCode}`);
+                if (verbose) log(`    -> ${_CYAN}${id},it${initializedIterations}${_RESET}: Status Code ${_YELLOW}${resp.statusCode}${_RESET}`);
                 
                 let data = '';
                 stats["statusCode"] = resp.statusCode;
@@ -165,7 +176,23 @@ function run(config){
                 // The whole response has been received. Print out the result.
                 resp.on('end', () => {
                     stats["completeResponseTime"] = getDuration(begin);
-                    if (verbose) log(`    -> ${id}: Response recieved in ${stats["completeResponseTime"]}ms`);
+                    if (verbose) log(`    -> ${_CYAN}${id},it${initializedIterations}${_RESET}: Response recieved in ${_YELLOW}${stats["completeResponseTime"]}ms${_RESET}`);
+                    let parsedData = null;
+                    try {
+                        parsedData = JSON.parse(data);
+                    } catch (e) {
+                        parsedData = data;
+                    }
+
+                    if(responseHandler){
+                        responseHandler({
+                            user : id,
+                            iteration : initializedIterations,
+                            stats : stats,
+                            responseData : parsedData 
+                        });
+                    }
+                    
                     resolve(stats)
                 });
     
@@ -201,6 +228,7 @@ function run(config){
     function createRequestLotPromise(iteration, harvester) {
         return new Promise(function (resolve, reject) {
             if (verbose) log(` - ${iteration} started.`);
+            initializedIterations++;
             promiseParallel(requestPromises)
                 .then((results) => {
                     var requestLotResult = {
@@ -213,7 +241,9 @@ function run(config){
                 .catch(reject);
         });
     }
-    
+
+    var initializedIterations = 0;
+
     var remainingIterations = iterations;
     
     var iterationResults = [];
@@ -221,7 +251,7 @@ function run(config){
     
     function requestLot(it, harvester) {
         createRequestLotPromise(it, harvester).catch((err) => {
-            log(`  ITERATION ERROR --> ${it}: ${err}`);
+            log(`  ITERATION ERROR --> ${_RED}${it}: ${err}${_RESET}`);
             remainingIterations--;
             log(`       Remaining Iterations: ${remainingIterations}`);
             if (iterationResults.length >= remainingIterations) {
@@ -254,7 +284,7 @@ function run(config){
         iterationResults.push(iterationResult);
         var completedIterations = iterationResults.length;    
     
-        log(`  -> ${iterationResult.id} completed (${completedIterations}/${remainingIterations} of ${iterations})`);
+        log(`  -> ${_GREEN}${iterationResult.id}${_RESET} completed (${_GREEN}${completedIterations}/${remainingIterations}${_RESET} of ${_GREEN}${iterations}${_RESET})`);
     
         
         if (completedIterations >= remainingIterations) {
