@@ -89,18 +89,18 @@ Result:
 ```
 
 ## Module usage 
-It can be used as a module with different [customization hooks](#Customization-hooks).
-
+It can be used as a module with different [customization hooks](#Customization-hooks) and more control over the execution flow with extra parameters (``harvestResponse``, ``timeout``, etc).
 ```js
 const { run } = require("apipecker");
 // import { run } from "apipecker";  // in ES6 modules
 
-function myUrlBuilder(userId){
-    var url = "https://api-echo.herokuapp.com/echo/myapi/request/test-"+userId+"withpartams=true";
+
+function myUrlBuilder(userId,iteration){
+    var url = "https://api-echo.herokuapp.com/echo/myapi/request/test-"+userId+"-"+iteration;
     return url;
 }
 
-function myRequestBuilder(userId){
+function myRequestBuilder(userId,iteration){
     var data = {
         user : userId
     };
@@ -111,7 +111,7 @@ function myRequestBuilder(userId){
         options : {
             method: "POST",
             headers: {
-                'Api-Token': 'TOKEN-'+userId,
+                'Api-Token': 'TOKEN-'+userId+'-'+iteration,
                 'Content-Type': 'application/json',
                 'Content-Length': jsonData.length
             }
@@ -123,14 +123,21 @@ function myRequestBuilder(userId){
 }
 
 function myResponseHandler(responseInfo){
-    console.log(JSON.stringify(responseInfo,null,2));
+    let user = responseInfo.user;
+    let iteration = responseInfo.iteration;
+    let timestamp = responseInfo.responseData.timestamp;
+
+    console.log(`    myResponseHandler: ${user},it${iteration},${timestamp}`);
 }
+         
 
 function myResultsHandler(results){
+    // To show the detailed data
     console.log(JSON.stringify(results.lotStats,null,2));
+    
+    // To show a global summary
     console.log(JSON.stringify(results.summary,null,2));
 }
-
 
 run({
     concurrentUsers : 2,
@@ -139,11 +146,13 @@ run({
     verbose : true,
     consoleLogging : true, //Comment this line to avoid logs
     harvestResponse : true, //Comment this line to avoid harvesting response data
+    timeout : 600, // Comment this line to avoid a timeout specified in miliseconds
     urlBuilder: myUrlBuilder,
     requestBuilder : myRequestBuilder,
     responseHandler : myResponseHandler,
     resultsHandler : myResultsHandler
 });
+
 ```
 
 ### Customization hooks

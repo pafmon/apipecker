@@ -22,3 +22,4 @@ app.get("/api/v1/stress/:time", (req, res) => {
 app.get("/", (req, res) => {
     res.sendStatus(200);
 });
+

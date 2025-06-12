@@ -1,11 +1,11 @@
 import { run } from "../index.js";
 
-function myUrlBuilder(userId){
-    var url = "https://api-echo.herokuapp.com/echo/myapi/request/test-"+userId+"withpartams=true";
+function myUrlBuilder(userId,iteration){
+    var url = "https://api-echo.herokuapp.com/echo/myapi/request/test-"+userId+"-"+iteration;
     return url;
 }
 
-function myRequestBuilder(userId){
+function myRequestBuilder(userId,iteration){
     var data = {
         user : userId
     };
@@ -16,7 +16,7 @@ function myRequestBuilder(userId){
         options : {
             method: "POST",
             headers: {
-                'Api-Token': 'TOKEN-'+userId,
+                'Api-Token': 'TOKEN-'+userId+'-'+iteration,
                 'Content-Type': 'application/json',
                 'Content-Length': jsonData.length
             }
@@ -28,8 +28,13 @@ function myRequestBuilder(userId){
 }
 
 function myResponseHandler(responseInfo){
-    console.log(JSON.stringify(responseInfo,null,2));
+    let user = responseInfo.user;
+    let iteration = responseInfo.iteration;
+    let timestamp = responseInfo.responseData.timestamp;
+
+    console.log(`    myResponseHandler: ${user},it${iteration},${timestamp}`);
 }
+         
 
 function myResultsHandler(results){
     // To show the detailed data
@@ -46,6 +51,7 @@ run({
     verbose : true,
     consoleLogging : true, //Comment this line to avoid logs
     harvestResponse : true, //Comment this line to avoid harvesting response data
+    timeout : 600, // Comment this line to avoid a timeout specified in miliseconds
     urlBuilder: myUrlBuilder,
     requestBuilder : myRequestBuilder,
     responseHandler : myResponseHandler,

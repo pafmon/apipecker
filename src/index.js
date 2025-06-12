@@ -3,6 +3,8 @@ const https = require('https');
 
 const urlParser = require('url');
 
+var DEBUG=false;
+
 const {
     promiseParallel
 } = require('./utils/promise');
@@ -17,7 +19,7 @@ const {
     std,
     round
 } = require('./utils/math');
-
+const { error, time } = require('console');
 
 
 const _RESET = '\x1b[0m';
@@ -25,6 +27,7 @@ const _GREEN = '\x1b[32m';
 const _CYAN = '\x1b[36m';
 const _YELLOW = '\x1b[33m';
 const _RED = '\x1b[31m';
+const _MAGENTA = '\x1b[35m';
 
 var logs = [];
 var consoleLogging = false;
@@ -35,6 +38,10 @@ function log(s){
         console.log(s);
 };
 
+function dbg(s){
+    if (DEBUG)
+        console.log(`${_MAGENTA}${s}${_RESET}`);
+}
 
 function run(config){
 
@@ -51,12 +58,18 @@ function run(config){
     const requestBuilder = config.requestBuilder;
     const responseHandler = config.responseHandler;
     const resultsHandler = config.resultsHandler;
+    const timeout = config.timeout || null;
+    DEBUG = DEBUG || config.debug;
     
      
     try{
         
         if(urlBuilder)
-            url = urlBuilder("user1");  
+            url = urlBuilder("user1",1);  
+        else if(url == null || url == "" || url == undefined){
+            throw new Error(`${_RED}URL is undefined <${url}> and urlBuilder is not specified${_RESET}`);
+            return;
+        }
     
         var protocol = urlParser.parse(url, true).protocol.slice(0,-1);
 
@@ -83,73 +96,122 @@ function run(config){
     log(`  - Concurrent users: ${_CYAN}${concurrentUsers}${_RESET}`);
     log(`  - Iterations: ${_CYAN}${iterations}${_RESET}`);
     log(`  - Delay: ${_CYAN}${delay}${_RESET}`);
+    if(timeout)
+        log(`  - Timeout: ${_CYAN}${timeout}${_RESET}`);
     log(`  - URL: <${_CYAN}${url}${_RESET}>`);
     log(`  - Log mode: ${(verbose)?_CYAN+"VERBOSE"+_RESET:_CYAN+"normal"+_RESET}`);
     
     
     log("Starting execution...");
     
-    function computeLotStats(stats) {
-        return {
-            "stats": stats,
-            "summary": {
+    function computeLotStats(rawStats) {
+        let stats = rawStats.filter(s=>((s.error == null)||(s.error == "")||(s.error == undefined)));
+
+        dbg(`[computeLotStats] stats=${JSON.stringify(stats,null,2)}`);
+
+
+        let lotStat =  {
+            "stats": rawStats,
+            "summary": {}
+        }
+
+        if(stats.length > 0)
+            lotStat.summary = {
                 "count": stats.length,
-                "min": round(min(stats.map(n=>n.completeResponseTime)),3),
-                "max": round(max(stats.map(n=>n.completeResponseTime)),3),
-                "mean": round(mean(stats.map(n=>n.completeResponseTime)),3),
-                "std": round(std(stats.map(n=>n.completeResponseTime)),3)
-            }
-        };
+                "min": round(min(stats.map(s=>s.completeResponseTime)),3),
+                "max": round(max(stats.map(s=>s.completeResponseTime)),3),
+                "mean": round(mean(stats.map(s=>s.completeResponseTime)),3),
+                "std": round(std(stats.map(s=>s.completeResponseTime)),3)
+            };
+
+        if(timeout){
+            lotStat.summary.timeoutCount = 0;
+            rawStats.forEach(stat =>{
+                if(stat.timeout)
+                    lotStat.summary.timeoutCount++;
+            });
+        }
+            
+        return lotStat;
+
     }
     
     
     function computeFullStats(lotStats) {
     
-        var responseTimes = [];
+        var rawResponseTimes = [];
         
         lotStats.forEach(lotStat => {
             Array
             .prototype
             .push
-            .apply(responseTimes
+            .apply(rawResponseTimes
                     ,lotStat
                         .result
-                        .stats.map(n=>n.completeResponseTime));
+                        .stats
+                        .filter(s=>((s.error == null)||(s.error == "")||(s.error == undefined)))
+                        .map(s=>s.completeResponseTime));
         });
-    
+
+        dbg(`[computeFullStats] rawResponseTimes=${JSON.stringify(rawResponseTimes,null,2)}`);
+        
+        var responseTimes = rawResponseTimes.filter((n=>((n!=null && n>0))));
+
         var fullStats = {
             "lotStats": lotStats,
-            "summary": {
+            "summary": {}
+        };
+
+        if(responseTimes.length > 0){
+            fullStats.summary = {
                 "count": responseTimes.length,
                 "min": round(min(responseTimes),3),
                 "max": round(max(responseTimes),3),
                 "mean": round(mean(responseTimes),3),
                 "std": round(std(responseTimes),3)
-            }
-        };
+            };
+        }
+
+        if(timeout){
+            fullStats.summary.timeoutCount = 0;
+
+            lotStats.forEach(itStat =>{
+                itStat.result.stats.forEach(stat =>{
+                    if(stat.timeout){
+                        fullStats.summary.timeoutCount++;
+                    }
+                });
+            });
+        }
+
+        dbg(`[computeFullStats] fullStats=${JSON.stringify(fullStats,null,2)}`);
+
         return fullStats;
     }
     
     
     function createRequestPromise(id, url) {
         return new Promise(function (resolve, reject) {
+            var begin = getBegin();
+            var iteration = initializedIterations;
+
+            dbg(`[createRequestPromise][${id}][${iteration}][+${getDuration(begin)}] url=${url}, begin=${begin}`);
             var stats = {
                 "id": id,
                 "initialResponseTime": 0.0,
                 "completeResponseTime": 0.0,
                 "statusCode" : null
             };
-
+            
+            
             var options = {};
 
             options.method = method;
  
-            var begin = getBegin();
-
-            var requestConfig = {};
+            var requestConfig = {}; 
 
             if(requestBuilder){
-                requestConfig = requestBuilder(id);    
+                requestConfig = requestBuilder(id,iteration);    
                 options = requestConfig.options;
                 if (!options.method)
                     options.method = method;
@@ -157,27 +219,80 @@ function run(config){
 
             if (!options.method)
                 options.method = "GET";
+            let finalURL = url;
+ 
+            try{
+                if(urlBuilder)
+                    finalURL = urlBuilder(id,iteration);  
+                else if(finalURL == null || finalURL == "" || finalURL == undefined){
+                    console.error(`${_RED}URL is undefined <${finalURL}> and urlBuilder is not specified${_RESET}`);
+                    reject(id + ","+iteration+": " + err);
+                }
+                urlParser.parse(finalURL, true);
 
-            if (verbose) log(`  - ${_CYAN}${id},it${initializedIterations}${_RESET}: ${_CYAN}${options.method}${_RESET} Request to <${_CYAN}${url}${_RESET}>...`);
+            }catch(err){
+                console.error(`${_RED}Invalid URL <${url}> : ${err}${_RESET}`);
+                reject(id + ","+iteration+": " + err);
+            }
 
 
-            const req = requester.request(url,options, (resp) => {
-    
-                if (verbose) log(`    -> ${_CYAN}${id},it${initializedIterations}${_RESET}: Status Code ${_YELLOW}${resp.statusCode}${_RESET}`);
+            if (verbose) log(`  - ${_CYAN}${id},it${iteration}${_RESET}: ${_CYAN}${options.method}${_RESET} Request to <${_CYAN}${finalURL}${_RESET}>...`);
+
+            stats["url"] = finalURL;
+
+            const req = requester.request(finalURL,options, (resp) => {             
+
+                if(timeout && (getDuration(begin) > timeout)){
+                    let now = getBegin();
+                    if (verbose) log(`    -> ${_CYAN}${id},it${iteration}${_RESET}:${_RED} TIMEOUT!${_RESET}`);
+                    dbg(`[createRequestPromise->requestTimout][${id}][${iteration}][+${getDuration(begin)}] begin=${begin}, now=${now}, duration=${((now-begin)/1000).toFixed(3)} > timeout=${timeout}`);  
+                    stats["timeout"] = true;
+                    resolve(stats);
+                    return;
+                }
+
+                if (verbose) log(`    -> ${_CYAN}${id},it${iteration}${_RESET}: Status Code ${_YELLOW}${resp.statusCode}${_RESET}`);
                 
                 let data = '';
+                
                 stats["statusCode"] = resp.statusCode;
+
                 stats["initialResponseTime"] = getDuration(begin);
-    
+                dbg(`[createRequestPromise->request][${id}][${iteration}][+${getDuration(begin)}] initialResponseTime=${stats["initialResponseTime"]}`);
+                
                 // A chunk of data has been recieved.
                 resp.on('data', (chunk) => {
+
+                    if(timeout && (getDuration(begin) > timeout)){
+                        let now = getBegin();
+                        if (verbose) log(`    -> ${_CYAN}${id},it${iteration}${_RESET}:${_RED} TIMEOUT!${_RESET}`);
+                        dbg(`[createRequestPromise->request->onDataTimout][${id}][${iteration}][+${getDuration(begin)}] begin=${begin}, now=${now}, duration=${((now-begin)/1000).toFixed(3)} > timeout=${timeout}`);  
+                        stats["timeout"] = true;
+                        resolve(stats);
+                        return;
+                    }
+                    
                     data += chunk;
+
                 });
     
                 // The whole response has been received. Print out the result.
-                resp.on('end', () => {
+                resp.on('end', () => {     
+                    
+                    if(timeout && (getDuration(begin) > timeout)){
+                        let now = getBegin();
+                        if (verbose) log(`    -> ${_CYAN}${id},it${iteration}${_RESET}:${_RED} TIMEOUT!${_RESET}`);
+                        dbg(`[createRequestPromise->request->onEndTimout][${id}][${iteration}][+${getDuration(begin)}] begin=${begin}, now=${now}, duration=${((now-begin)/1000).toFixed(3)} > timeout=${timeout}`);  
+                        stats["timeout"] = true;
+                        resolve(stats);
+                        return;
+                    }
+                    
+                    now = getBegin();
+                    dbg(`[createRequestPromise->request->onEnd][${id}][${iteration}][+${getDuration(begin)}] (doublechecked) duration=${((now-begin)/1000).toFixed(3)}`);
                     stats["completeResponseTime"] = getDuration(begin);
-                    if (verbose) log(`    -> ${_CYAN}${id},it${initializedIterations}${_RESET}: Response recieved in ${_YELLOW}${stats["completeResponseTime"]}ms${_RESET}`);
+                    dbg(`[createRequestPromise->request->onEnd][${id}][${iteration}][+${getDuration(begin)}] begin=${begin}, now=${now}, completeResponseTime=${stats["completeResponseTime"]}`);
+                    if (verbose) log(`    -> ${_CYAN}${id},it${iteration}${_RESET}: Response recieved in ${_YELLOW}${stats["completeResponseTime"]}ms${_RESET}`);
                     let parsedData = null;
                     try {
                         parsedData = JSON.parse(data);
@@ -187,42 +302,53 @@ function run(config){
 
                     if(responseHandler){
                         responseHandler({
+                            url: finalURL,
                             user : id,
-                            iteration : initializedIterations,
+                            iteration,
                             stats : stats,
                             responseData : parsedData 
                         });
                     }
-
                     if(harvestResponse) 
                         stats["responseData"] = parsedData;
                     
                     resolve(stats)
                 });
-    
             }).on("error", (err) => {
-                reject(id + ": " + err);
+                dbg(`[createRequestPromise->request->onError][${id}][${iteration}][+${getDuration(begin)}] err=${JSON.stringify(err,null,2)}`);
+                if(stats["timeout"] == true)
+                    if (verbose) log(`    -> ${_CYAN}${id},it${iteration}${_RESET}:${_RED} TIMEOUT!${_RESET}`);
+                else
+                    if (verbose) log(`    -> ${_CYAN}${id},it${iteration}${_RESET}:${_RED} ERROR [${err.code}]: ${err.message}${_RESET}`);
+                stats["error"] = err.code;
+                resolve(stats);
+
             });
 
+            if(timeout){
+                dbg(`[createRequestPromise][${id}][${iteration}][+${getDuration(begin)}] setTimout for +${getDuration(begin)+timeout}`);
+                req.setTimeout(timeout, () => {
+                    let now = getBegin();
+                    dbg(`[createRequestPromise->request->TimeoutCallback][${id}][${iteration}][+${getDuration(begin)}] begin=${begin}, now=${now}, duration=${((now-begin)/1000).toFixed(3)} > timeout=${timeout}`);  
+                    stats["timeout"] = true;
+                    req.abort();
+                });
+            }
             if(requestBuilder && requestConfig.data)
                 req.write(requestConfig.data)
 
             req.end();
-
         });
     }
     
     var requestPromiseParams = [];
     for (var i = 1; i <= concurrentUsers; i++) {
-        var finalURL = url;
-        var id = "user" + i;
 
-        if(urlBuilder)
-           finalURL = urlBuilder(id);   
+        var id = "user" + i;
 
         requestPromiseParams.push({
             "id": id,
-            "url": finalURL
+            "url": url
         });
     }
     
@@ -242,7 +368,10 @@ function run(config){
                     harvester(requestLotResult);
                     resolve(requestLotResult);
                 })
-                .catch(reject);
+                .catch((err) => {
+                    dbg(`[createRequestLotPromise->PromiseParallel->Catch] err=${JSON.stringify(err,null,2)}`);
+                    reject(err);
+                });
         });
     }
 
@@ -280,6 +409,7 @@ function run(config){
     }
     
     for (var i = 1; i <= iterations; i++) {
+        dbg(`Iterations: ${i}, current(i): ${i}, delay=${delay}, delayTime(delay*(i-1))=${delay * (i - 1)}`);
         setTimeout(requestLot, (delay * (i - 1)), "iteration" + i, harvester);
     }
         

@@ -1,12 +1,14 @@
 {
   "name": "apipecker",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "A simple API Performance tester",
   "main": "index.js",
   "scripts": {
-    "execute-test": "node test/functional.js",
     "test-server": "node test/server.js",
-    "test": "start-server-and-test test-server http://localhost:3000 execute-test"
+    "execute-test": "node test/functional.js",
+    "execute-test-timeout": "node test/timeout.js",
+    "test": "start-server-and-test test-server http://localhost:3000 execute-test",
+    "test-timeout": "start-server-and-test test-server http://localhost:3000 execute-test-timeout"
   },
   "repository": {
     "type": "git",
