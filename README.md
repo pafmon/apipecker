@@ -89,7 +89,8 @@ Result:
 ```
 
 ## Module usage 
-It can be used as a module with different [customization hooks](#Customization-hooks) and more control over the execution flow with extra parameters (``harvestResponse``, ``timeout``, etc).
+It can be used as a module with different [customization hooks](#Customization-hooks) and more control over the execution flow with extra parameters (``harvestResponse``, ``timeout``, etc). See [samples folder](/samples/) for different examples of apipecker usage as a module.
+
 ```js
 const { run } = require("apipecker");
 // import { run } from "apipecker";  // in ES6 modules

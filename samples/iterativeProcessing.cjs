@@ -40,7 +40,7 @@ function myResultsHandler(results){
 
     for(let i=0; i<stats.length; i++){
         let stat = stats[i];
-        console.log(`    Iteration stat[${i}]: ${JSON.stringify(stat,null,2)}`);
+        //console.log(`    stat[${i}]: ${JSON.stringify(stat,null,2)}`);
 
         lot.push(stat);
         
