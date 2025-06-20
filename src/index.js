@@ -309,6 +309,7 @@ function run(config){
                             responseData : parsedData 
                         });
                     }
+                    
                     if(harvestResponse) 
                         stats["responseData"] = parsedData;
                     
