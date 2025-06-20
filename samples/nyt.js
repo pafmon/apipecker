@@ -6,7 +6,7 @@ const _RED = '\x1b[31m';
 const _MAGENTA = '\x1b[35m';
 
 function myUrlBuilder(userId,iteration){
-    var url = "https://api.nytimes.com/svc/books/v3/lists/2022-02-02/audio-nonfiction.json?api-key="+${process.env.NYT_API_KEY};
+    var url = "https://api.nytimes.com/svc/books/v3/lists/2022-02-02/audio-nonfiction.json?api-key="+process.env.NYT_API_KEY;
     return url;
 }
 
