@@ -107,7 +107,7 @@ function run(config){
     function computeLotStats(rawStats) {
         let stats = rawStats.filter(s=>((s.error == null)||(s.error == "")||(s.error == undefined)));
 
-        dbg(`[computeLotStats] stats=${JSON.stringify(stats,null,2)}`);
+        logLargeJSONStream('[computeLotStats] stats', stats, dbg);
 
 
         let lotStat =  {
@@ -153,8 +153,8 @@ function run(config){
                         .map(s=>s.completeResponseTime));
         });
 
-        dbg(`[computeFullStats] rawResponseTimes=${JSON.stringify(rawResponseTimes,null,2)}`);
-        
+        logLargeJSONStream('[computeFullStats] rawResponseTimes', rawResponseTimes, dbg);
+
         var responseTimes = rawResponseTimes.filter((n=>((n!=null && n>0))));
 
         var fullStats = {
@@ -184,7 +184,7 @@ function run(config){
             });
         }
 
-        dbg(`[computeFullStats] fullStats=${JSON.stringify(fullStats,null,2)}`);
+        logLargeJSONStream('[computeFullStats] fullStats', fullStats, dbg);
 
         return fullStats;
     }
@@ -316,7 +316,7 @@ function run(config){
                     resolve(stats)
                 });
             }).on("error", (err) => {
-                dbg(`[createRequestPromise->request->onError][${id}][${iteration}][+${getDuration(begin)}] err=${JSON.stringify(err,null,2)}`);
+                logLargeJSONStream(`[createRequestPromise->request->onError][${id}][${iteration}][+${getDuration(begin)}] err`, err, dbg);
                 if(stats["timeout"] == true)
                     if (verbose) log(`    -> ${_CYAN}${id},it${iteration}${_RESET}:${_RED} TIMEOUT!${_RESET}`);
                 else
@@ -370,7 +370,7 @@ function run(config){
                     resolve(requestLotResult);
                 })
                 .catch((err) => {
-                    dbg(`[createRequestLotPromise->PromiseParallel->Catch] err=${JSON.stringify(err,null,2)}`);
+                    logLargeJSONStream(`[createRequestLotPromise->PromiseParallel->Catch] err`, err, dbg);
                     reject(err);
                 });
         });
@@ -399,7 +399,7 @@ function run(config){
                     log("\nNo results to be shown.");
                 }
 
-                log(JSON.stringify(results.summary, null, 2));
+                logLargeJSONStream('Summary', results.summary);
                 results.logs = logs;
 
                 if(resultsHandler)
@@ -425,7 +425,7 @@ function run(config){
         if (completedIterations >= remainingIterations) {
             log("\nResults:");
             const results = computeFullStats(iterationResults);
-            log(JSON.stringify(results.summary, null, 2));
+            logLargeJSONStream('Summary', results.summary);
             results.logs = logs;
 
             if(resultsHandler)
@@ -434,5 +434,19 @@ function run(config){
     };
 
 }
+
+const fs = require('fs');
+const JSONStream = require('JSONStream');
+
+function logLargeJSONStream(label, obj, logger = console.log) {
+  const stream = JSONStream.stringifyObject();
+  stream.on('data', chunk => logger(`${label}:\n${chunk}`));
+  stream.on('error', err => logger(`${label} [error]: ${err.message}`));
+  
+  Object.entries(obj).forEach(([key, val]) => stream.write([key, val]));
+  stream.end();
+}
+
+
 
 module.exports = { run };
