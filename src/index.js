@@ -61,7 +61,12 @@ function run(config){
     const timeout = config.timeout || null;
     DEBUG = DEBUG || config.debug;
     
-     
+    //continuityHandler params
+    const continuityHandler = config.continuityHandler || {};
+    let keepGoing = true;
+    let timeoutIds = [];
+    //streamingHandler params
+    const streamingHandler = config.streamingHandler
     try{
         
         if(urlBuilder)
@@ -271,6 +276,17 @@ function run(config){
                         resolve(stats);
                         return;
                     }
+                    parsedChunk = chunk.toString();
+                    elapsed = getDuration(begin);
+                    dbg(`[createRequestPromise->request->onData][${id}][${iteration}][+${elapsed}] chunk=${parsedChunk}`);
+                    if(streamingHandler){
+                        streamingHandler({
+                            chunk: parsedChunk,
+                            time: elapsed,
+                            user : id,
+                            iteration: iteration
+                        });
+                    }
                     
                     data += chunk;
 
@@ -357,17 +373,32 @@ function run(config){
     const requestPromises = requestPromiseParams.map(param => () => createRequestPromise(param["id"], param["url"]));
     
     function createRequestLotPromise(iteration, harvester) {
+        if(!keepGoing){
+            return new Promise(function (resolve, reject) {
+                resolve();
+            });
+        }
         return new Promise(function (resolve, reject) {
             if (verbose) log(` - ${iteration} started.`);
             initializedIterations++;
+            n = initializedIterations;
             promiseParallel(requestPromises)
                 .then((results) => {
                     var requestLotResult = {
                         "id": iteration,
                         "result": computeLotStats(results)
                     };
-                    harvester(requestLotResult);
-                    resolve(requestLotResult);
+                    if (keepGoing){
+                        if (continuityHandler && continuityHandler instanceof Function && continuityHandler(requestLotResult)===false){
+                            keepGoing = false;
+                            timeoutIds.forEach(timeoutId => clearTimeout(timeoutId));
+                        }
+                        harvester(requestLotResult);
+                        resolve(requestLotResult);
+                    }
+                    
+                    resolve();
+                    
                 })
                 .catch((err) => {
                     dbg(`[createRequestLotPromise->PromiseParallel->Catch] err=${JSON.stringify(err,null,2)}`);
@@ -388,7 +419,7 @@ function run(config){
             log(`  ITERATION ERROR --> ${_RED}${it}: ${err}${_RESET}`);
             remainingIterations--;
             log(`       Remaining Iterations: ${remainingIterations}`);
-            if (iterationResults.length >= remainingIterations) {
+            if (iterationResults.length >= remainingIterations ) {
                 log(`\nResult:`);
                 var results = {};              
                 if(iterationResults.length > 0){
@@ -411,7 +442,8 @@ function run(config){
     
     for (var i = 1; i <= iterations; i++) {
         dbg(`Iterations: ${i}, current(i): ${i}, delay=${delay}, delayTime(delay*(i-1))=${delay * (i - 1)}`);
-        setTimeout(requestLot, (delay * (i - 1)), "iteration" + i, harvester);
+        let timeoutId = setTimeout(requestLot, (delay * (i - 1)), "iteration" + i, harvester);
+        timeoutIds.push(timeoutId);
     }
         
     function harvester(iterationResult) {
@@ -422,14 +454,20 @@ function run(config){
         log(`  -> ${_GREEN}${iterationResult.id}${_RESET} completed (${_GREEN}${completedIterations}/${remainingIterations}${_RESET} of ${_GREEN}${iterations}${_RESET})`);
     
         
-        if (completedIterations >= remainingIterations) {
+        if (completedIterations >= remainingIterations || !keepGoing) {
             log("\nResults:");
             const results = computeFullStats(iterationResults);
             log(JSON.stringify(results.summary, null, 2));
+            if (!keepGoing){
+            log(`Continuity handler has indicated to stop the execution. Stopping...`);
+            }
             results.logs = logs;
 
             if(resultsHandler)
                 resultsHandler(results); 
+            if (!keepGoing){
+                process.exit(0);
+            }
         }
     };
 

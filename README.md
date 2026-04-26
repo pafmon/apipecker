@@ -130,6 +130,14 @@ function myResponseHandler(responseInfo){
 
     console.log(`    myResponseHandler: ${user},it${iteration},${timestamp}`);
 }
+
+function myContinuityHandler(requestLotResult) {
+// Stops in case of high variability
+    if (requestLotResult.result.summary.std >= 0.5) {
+        return false;
+    }
+
+}
          
 
 function myResultsHandler(results){
@@ -164,6 +172,7 @@ and have more control over the execution flow and handle the results.
  - `requestBuilder`: function to build the request options
  - `responseHandler`: function to handle the response data
  - `resultsHandler`: function to handle the results stats
+ - `continuityHandler`: function to handle the continuity of the script
  
 ### Response harvesting
 By default, apipecker will not harvest the response data, but you can enable it by setting the `harvestResponse` flag to `true`, e.g.:

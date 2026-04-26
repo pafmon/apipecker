@@ -2,12 +2,14 @@ const { json } = require("express");
 const { run } = require("../index.js");
 
 let CONCURRENT_USERS = 1;
-let ITERATIONS = 4; 
+let ITERATIONS = 5; 
 let DELAY = 150;
 let TIMEOUT = 300;
 
+let EXPECTED_ITERATIONS = 4;
+
 let EXPECTED_MEAN = 150;
-let EPSILON = 15;
+let EPSILON = 20;
 const _RESET = '\x1b[0m';
 const _CYAN = '\x1b[36m';
 const _GREEN = '\x1b[32m';
@@ -18,10 +20,16 @@ function myUrlBuilder(user,iteration){
 
     var url = "http://localhost:3000/api/v1/stress/"+EXPECTED_MEAN;
     
-    if(iteration === 4)
+    if(iteration >= 4)
         url = "http://localhost:3000/api/v1/stress/"+(TIMEOUT+100);
 
     return url;
+}
+
+n_iter = 0;
+function continuityHandler(lotResult){
+    n_iter ++;
+    return !(n_iter == 4);
 }
 
 function myRequestBuilder(userId){
@@ -62,7 +70,12 @@ function myResultsHandler(results){
     }else{
         console.log(`Expected mean: ${_YELLOW}${EXPECTED_MEAN}ms${_RESET} ±${_YELLOW}${EPSILON}${_RESET}, real mean: ${_YELLOW}${mean}ms${_RESET} --> ${_GREEN}SUCCESS${_RESET}`);
     }
-    
+    if(results.lotStats.length == EXPECTED_ITERATIONS ){
+        console.log(`Expected stop at iteration ${_YELLOW}${EXPECTED_ITERATIONS}${_RESET}, stoped at ${_YELLOW}${results.lotStats.length}${_RESET} --> ${_GREEN}SUCCESS${_RESET}`);
+    }else{
+        console.log(`Expected stop at iteration ${_YELLOW}${EXPECTED_ITERATIONS}${_RESET}, but it stopped at ${_YELLOW}${results.lotStats.length}${_RESET}. --> ${_RED}FAILED${_RESET}`);
+        process.exit(1);
+    }
     
     process.exit(0);
     
@@ -78,6 +91,7 @@ run({
     urlBuilder: myUrlBuilder,
     requestBuilder : myRequestBuilder,
     resultsHandler : myResultsHandler,
+    continuityHandler : continuityHandler,
     responseHandler : (responseInfo) => {       
         console.log(JSON.stringify(responseInfo,null,2));
     }

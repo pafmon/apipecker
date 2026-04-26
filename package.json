@@ -8,7 +8,9 @@
     "execute-test": "node test/functional.js",
     "execute-test-timeout": "node test/timeout.js",
     "test": "start-server-and-test test-server http://localhost:3000 execute-test",
-    "test-timeout": "start-server-and-test test-server http://localhost:3000 execute-test-timeout"
+    "test-timeout": "start-server-and-test test-server http://localhost:3000 execute-test-timeout",
+    "test-continuity": "start-server-and-test test-server http://localhost:3000 execute-test-continuity",
+    "execute-test-continuity": "node test/continuity.js"
   },
   "repository": {
     "type": "git",
